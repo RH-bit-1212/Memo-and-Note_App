@@ -1,9 +1,9 @@
 // src/api/api.js
-export const API_URL = "http://localhost:8000";
+//export const API_URL = "http://localhost:8000";
 
 // Dockerによる公開時は以下にすること。(どっちか)
 // export const API_URL = "";
-// export const API_URL = window.location.origin;
+export const API_URL = window.location.origin;
 
 /* =========================
    共通：認証ヘッダ
