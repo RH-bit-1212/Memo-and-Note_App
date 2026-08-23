@@ -1,12 +1,11 @@
 <template>
   <div class="category-manager-container">
-    <h2>カテゴリ管理</h2>
 
     <!-- 新規追加フォーム -->
     <div class="form">
       <input v-model="newName" placeholder="カテゴリ名" />
       <input v-model="newDescription" placeholder="説明（任意）" />
-      <button @click="createCategory">追加</button>
+      <button @click="createCategory" class="tuika">追加</button>
     </div>
 
     <!-- 一覧テーブル -->
@@ -126,8 +125,18 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   padding: 1rem;
-  overflow: hidden; /* 画面全体の縦スクロール禁止 */
+
+  overflow: hidden;
+  background: rgba(236, 236, 236, 0.5); /* 半透明白 */
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 20px;
 }
 
 /* タイトル */
@@ -139,6 +148,9 @@ h2 {
 /* ヘッダーを中央揃え */
 table thead th {
   text-align: center;
+  background-color: rgba(40, 40, 40, 0.9);
+  color: white;
+  font-weight: 600;
 }
 
 /* データセルは左揃え（既存の設定） */
@@ -171,8 +183,9 @@ table tbody td {
 /* テーブルラッパー */
 .table-wrapper {
   width: 80%;
-  max-height: 550px; /* 縦スクロール高さ */
+  max-height: 75vh; /* 縦スクロール高さ */
   overflow-y: auto;
+  overflow-x: auto;
   border: 1px solid #ccc;
 }
 
@@ -193,8 +206,8 @@ td {
 }
 
 /* 列幅調整（PC画面用） */
-th:nth-child(1), td:nth-child(1) { width: 20%; } /* カテゴリ名 */
-th:nth-child(2), td:nth-child(2) { width: 50%; } /* 説明 */
+th:nth-child(1), td:nth-child(1) { width: 150px; } /* カテゴリ名 */
+th:nth-child(2), td:nth-child(2) { width: 150px; } /* 説明 */
 th:nth-child(3), td:nth-child(3) { width: 90px; } /*作成日 */
 th:nth-child(4), td:nth-child(4) { width: 150px; } /* 操作列 */
 
@@ -209,6 +222,11 @@ td button.delete {
 input {
   width: 100%;
   box-sizing: border-box;
+}
+
+button.tuika {
+  background-color: #7a7a7a;
+  color: white;
 }
 
 button.update {
@@ -245,6 +263,11 @@ button.delete {
 
 /* 小さい画面で調整 */
 @media (max-width: 600px) {
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 100px;
+  }
+
   th:nth-child(2),
   td:nth-child(2) {
     width: 100px;

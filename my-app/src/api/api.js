@@ -1,6 +1,10 @@
 // src/api/api.js
 export const API_URL = "http://localhost:8000";
 
+// Dockerによる公開時は以下にすること。(どっちか)
+// export const API_URL = "";
+// export const API_URL = window.location.origin;
+
 /* =========================
    共通：認証ヘッダ
 ========================= */
@@ -35,11 +39,40 @@ export function logout() {
 /* =========================
    MEMO
 ========================= */
-export async function fetchMemos() {
-  const res = await fetch(`${API_URL}/memos`, { headers: authHeaders() });
+export async function fetchMemos(params = {}) {
+  const query = new URLSearchParams();
+
+  // API対応パラメータ（バックエンド完全一致）
+  const allowedKeys = [
+    "tag_ids",
+    "category_id",
+    "important",
+    "keyword",
+    "sort",
+  ];
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (!allowedKeys.includes(key)) return;
+
+    // 配列（tag_ids対応）
+    if (Array.isArray(value)) {
+      value.forEach(v => query.append(key, v));
+    }
+    // null / 空文字は除外
+    else if (value !== "" && value != null) {
+      query.append(key, value);
+    }
+  });
+
+  const res = await fetch(
+    `${API_URL}/memos?${query.toString()}`,
+    { headers: authHeaders() }
+  );
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
+
 
 export async function fetchMemo(id) {
   const res = await fetch(`${API_URL}/memos/${id}`, { headers: authHeaders() });

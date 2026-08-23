@@ -25,6 +25,13 @@
     <!-- ========================= -->
     <div v-if="currentView === 'memo'" class="main-view">
       <div class="memo-controls">
+        <button
+          class="btn-view"
+          :class="{ active: viewMode }"
+          @click="viewMode = !viewMode"
+        >
+          {{ viewMode ? "閲覧ON" : "閲覧OFF" }}
+        </button>
         <button class="btn-filter" @click="showFilter = true">🔍 フィルター</button>
         <button class="btn-create" @click="showCreate = true">＋ 新規メモ</button>
       </div>
@@ -37,7 +44,7 @@
         @close="showFilter = false"
       />
 
-      <MemoList :memos="filteredMemos" @open-detail="openDetail" />
+      <MemoList :memos="filteredMemos" @open-detail="handleMemoClick" />
 
       <MemoCreateModal
         v-if="showCreate"
@@ -48,13 +55,21 @@
       />
 
       <MemoDetailModal
-        v-if="selectedMemo"
+        v-if="selectedMemo && !viewMode"
         :memo="selectedMemo"
         :tags="tags"
         :categories="categories"
         @close="closeDetail"
         @update="updateMemoData"
         @delete="deleteMemoData"
+      />
+
+      <MemoViewModal
+        v-if="selectedMemo && viewMode"
+        :memo="selectedMemo"
+        :tags="tags"
+        :categories="categories"
+        @close="closeDetail"
       />
     </div>
 
@@ -75,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 
@@ -85,6 +100,7 @@ import MemoCreateModal from "./components/MemoCreateModal.vue";
 import MemoDetailModal from "./components/MemoDetailModal.vue";
 import CategoryManager from "./components/CategoryManager.vue";
 import TagManager from "./components/TagManager.vue";
+import MemoViewModal from "./components/MemoViewModal.vue";
 
 import {
   fetchMemos,
@@ -94,6 +110,7 @@ import {
   fetchCategories,
   fetchTags,
 } from "../api/api";
+
 
 // ---------------------------
 // 認証情報
@@ -113,11 +130,12 @@ const currentView = ref("memo");
 const showCreate = ref(false);
 const selectedMemo = ref(null);
 const showFilter = ref(false);
+const viewMode = ref(false); // false=編集モード / true=閲覧モード
 
 const filterCondition = ref({
   keyword: "",
   category_id: "",
-  tag_id: "",
+  tag_ids: [],
   important: "",
   sort: "created_desc",
 });
@@ -171,17 +189,25 @@ const initAuth = () => {
   }
 };
 
-
 // ---------------------------
-// APIロード（※ user 制約は backend 側）
+// loading
 // ---------------------------
 const isLoading = ref(false);
 
+// ---------------------------
+// API load（完全API駆動）
+// ---------------------------
 const loadAllData = async () => {
   isLoading.value = true;
+
   try {
+    const params = {
+      ...filterCondition.value,
+      tag_ids: filterCondition.value.tag_ids || [],
+    };
+
     const [memoRes, catRes, tagRes] = await Promise.all([
-      fetchMemos(),
+      fetchMemos(params),
       fetchCategories(),
       fetchTags(),
     ]);
@@ -201,11 +227,9 @@ const loadAllData = async () => {
 };
 
 
-// ---------------------------
-// JOIN 表示用
-// ---------------------------
 const enhanceMemo = (memo) => {
   const category = categories.value.find(c => c.id === memo.category_id);
+
   return {
     ...memo,
     categoryName: category ? category.name : "未分類",
@@ -216,32 +240,19 @@ const enhanceMemo = (memo) => {
 // ---------------------------
 // フィルタ
 // ---------------------------
-const filteredMemos = computed(() => {
-  let result = memos.value.map(enhanceMemo);
-  const cond = filterCondition.value;
+const filteredMemos = computed(() =>
+  memos.value.map(enhanceMemo)
+);
 
-  if (cond.keyword) {
-    const kw = cond.keyword.toLowerCase();
-    result = result.filter(m =>
-      m.title?.toLowerCase().includes(kw) ||
-      m.content?.toLowerCase().includes(kw)
-    );
-  }
+// ---------------------------
+// 閲覧モード
+// ---------------------------
+const handleMemoClick = (id) => {
+  selectedMemo.value =
+    memos.value.find(m => m.id === id) || null;
 
-  if (cond.category_id) {
-    result = result.filter(m => m.category_id == cond.category_id);
-  }
-
-  if (cond.tag_id) {
-    result = result.filter(m => m.tags?.some(t => t.id == cond.tag_id));
-  }
-
-  if (cond.important) {
-    result = result.filter(m => m.important == cond.important);
-  }
-
-  return result;
-});
+  router.push(`/memos/${id}`);
+};
 
 // ---------------------------
 // CRUD
@@ -300,6 +311,19 @@ watch(route, (r) => {
   else selectedMemo.value = null;
 });
 
+// ---------------------------
+// filter watch（debounce化）
+// ---------------------------
+let timer = null;
+
+watch(filterCondition, () => {
+  clearTimeout(timer);
+
+  timer = setTimeout(() => {
+    loadAllData();
+  }, 300);
+}, { deep: true });
+
 // 初期化
 onMounted(() => {
   initAuth();
@@ -307,40 +331,56 @@ onMounted(() => {
 });
 </script>
 
+
+
 <style scoped>
 /* 全体コンテナ */
 .main-container {
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
+  min-height: 100vh;
+  background-image: url("../assets/backgrounds/haikei.jpg");
+
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
-
-
 
 /* =========================
    ヘッダー（ログイン情報＋ログアウト）
 ========================= */
 .header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  width: 100%; /* PC画面幅の80% */
-  margin-bottom: 1rem;
+
+  gap: 0.5rem;
+
+  width: 100%;
+
+  margin-bottom: 0.5rem;
 }
 
 .login-info {
-  padding: 0.4rem 0.8rem;
+  padding: 0.2rem 0.5rem;
 
-  background-color: #700000ff;
+  font-size: 0.8rem;
+
+  border-radius: 4px;
+
+  background: rgba(0,0,0,0.6);
   color: white;
 }
 
 .btn-logout {
-  padding: 0.4rem 0.8rem;
+  padding: 0.2rem 0.6rem;
+
+  font-size: 0.8rem;
+
   border: none;
   border-radius: 4px;
-  background-color: #f87171;
+
+  background-color: #ef4444;
   color: white;
+
   cursor: pointer;
 }
 
@@ -349,76 +389,98 @@ onMounted(() => {
 ========================= */
 .top-menu {
   display: flex;
-  justify-content: space-between;
-  width: 100%; /* PC画面幅の80% */
-  margin-bottom: 1rem;
+
+  border-bottom: 2px solid rgba(255,255,255,0.3);
+
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(6px);
 }
 
 .top-menu button {
   flex: 1;
-  margin: 0 0.25rem;
-  padding: 0.5rem 0;
+
   border: none;
-  border-radius: 4px;
+
+  background: transparent;
+
+  padding: 12px;
+
+  color: #374151;
+
   cursor: pointer;
-  background-color: #e5e7eb;
+
+  transition: background-color 0.2s;
+}
+
+.top-menu button:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .top-menu button.active {
-  background-color: #3b82f6;
-  color: white;
+  background: rgba(59,130,246,0.12);
+
+  border-bottom: 3px solid #3b82f6;
+
+  color: #2563eb;
+  font-weight: bold;
 }
 
 /* =========================
    メモ画面のボタン（フィルター・新規作成）
 ========================= */
 .memo-controls {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
   width: 100%;
+  margin-bottom: 1rem;
+
+  border: 1px solid #cbd5e1;
+
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(6px);
 }
 
+/* 共通ボタン */
+.btn-view,
 .btn-filter,
 .btn-create {
-  flex: 1;
-  padding: 0.6rem 0;
+  padding: 0.8rem;
+
   border: none;
-  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+
+  color: #111827;
   cursor: pointer;
-  font-size: 1rem;
-  color: white;
+
+  transition: 0.2s;
+}
+
+/* 区切り線（横並びの境界） */
+.btn-view {
+  border-right: 1px solid #cbd5e1;
 }
 
 .btn-filter {
-  background-color: #3b82f6;
+  border-right: 1px solid #cbd5e1;
 }
 
 .btn-create {
-  background-color: #10b981;
+  border-right: none;
 }
 
-/* =========================
-   スマホ対応
-========================= */
-@media (max-width: 600px) {
-  .header,
-  .top-menu,
-  .memo-controls {
-    width: 100%; /* スマホでは100% */
-  }
-
-  .top-menu {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr; /* 3分割 */
-    gap: 0.5rem;
-  }
-
-  .memo-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr; /* フィルター・新規作成横並び */
-    gap: 0.5rem;
-  }
+/* hover */
+.btn-view:hover,
+.btn-filter:hover,
+.btn-create:hover {
+  background: rgba(255,255,255,0.3);
 }
+
+/* active */
+.btn-view.active {
+  background: rgba(59,130,246,0.15);
+  color: #2563eb;
+  font-weight: 600;
+}
+
 </style>

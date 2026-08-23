@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.sqlite import JSON
 from datetime import datetime
 from db import Base
+from sqlalchemy.sql import func
 from models.tag import Tag
 from models.category import Category
 
@@ -26,8 +27,8 @@ class Memo(Base):
     urls = Column(JSON, nullable=True)         # 文字列リストをJSONで格納
     important = Column(Integer, default=1)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     category = relationship("Category", back_populates="memos")
     tags = relationship("Tag", secondary=memo_tags, back_populates="memos")  # ← タグ配列

@@ -1,12 +1,10 @@
 <template>
   <div class="tag-manager-container">
-    <h2>タグ管理</h2>
-
     <!-- 新規追加フォーム -->
     <div class="form">
       <input v-model="newName" placeholder="タグ名" />
       <input type="color" v-model="newColor" /> <!-- カラーピッカー -->
-      <button @click="createTag">追加</button>
+      <button @click="createTag" class="tuika">追加</button>
     </div>
 
     <!-- タグ一覧テーブル -->
@@ -115,8 +113,19 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
+
   padding: 1rem;
-  overflow: hidden; /* 画面全体の縦スクロールを禁止 */
+
+  overflow: hidden;
+
+  background: rgba(236, 236, 236, 0.5); /* 半透明白 */
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-top: 20px;
 }
 
 /* タイトル */
@@ -128,6 +137,9 @@ h2 {
 /* ヘッダーを中央揃え */
 table thead th {
   text-align: center;
+  background-color: rgba(40, 40, 40, 0.9);
+  color: white;
+  font-weight: 600;
 }
 
 /* データセルは左揃え（既存の設定） */
@@ -174,7 +186,7 @@ table tbody td {
 /* テーブルラッパー */
 .table-wrapper {
   width: 80%;
-  max-height: 550px; /* 縦スクロール高さ */
+  max-height: 75vh; /* 縦スクロール高さ */
   overflow-y: auto;
   border: 1px solid #ccc;
 }
@@ -193,6 +205,16 @@ td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap; /* 1行にする */
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 150px;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 70px;
 }
 
 /* 作成日列の幅を日付に合わせる */
@@ -218,6 +240,11 @@ td button.delete {
 input {
   width: 100%;
   box-sizing: border-box;
+}
+
+button.tuika {
+  background-color: #7a7a7a;
+  color: white;
 }
 
 button.update {
@@ -254,16 +281,15 @@ button.delete {
   }
 }
 
-/* スマホ対応でさらに大きくする場合 */
-@media (max-width: 600px) {
-  input[type="color"] {
-    width: 50px;
-    height: 30px;
-  }
-}
 
 /* 小さい画面で調整 */
 @media (max-width: 600px) {
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 150px;
+  }
+
   th:nth-child(2),
   td:nth-child(2) {
     width: 50px;

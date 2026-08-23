@@ -1,38 +1,71 @@
 <template>
   <div class="memo-container-wrapper">
-    <h2>メモ管理</h2>
 
-    <div class="memo-container">
-      <div
-        v-for="memo in memos"
-        :key="memo.id"
-        class="memo-card"
-        :class="'imp-card-' + memo.important"
-        @click="$emit('open-detail', memo.id)"
-      >
-        <h3 class="memo-title">{{ memo.title }}</h3>
+    <div class="memo-table-wrapper">
+      <div class="memo-table-scroll">
 
-        <p class="memo-category">
-          カテゴリ: {{ memo.categoryName || "未分類" }}
-        </p>
+        <table class="memo-table">
+          <thead>
+            <tr>
+              <th class="col-title">タイトル</th>
+              <th class="col-category">カテゴリ</th>
+              <th class="col-tags">タグ</th>
+              <th class="col-important">重要度</th>
+              <th class="col-date">作成日</th>
+            </tr>
+          </thead>
 
-        <div class="memo-tags">
-          <span
-            v-for="tag in memo.tags"
-            :key="tag.name"
-            class="tag"
-            :style="{ backgroundColor: tag.color }"
-          >
-            {{ tag.name }}
-          </span>
-        </div>
+          <tbody>
+            <tr
+              v-for="memo in memos"
+              :key="memo.id"
+              :class="'imp-row-' + memo.important"
+              @click="$emit('open-detail', memo.id)"
+            >
+              <td class="title-cell">
+                {{ memo.title }}
+              </td>
 
-        <p class="memo-importance">
-          重要度:
-          <span :class="'imp imp-' + memo.important">{{ importanceLabel(memo.important) }}</span>
-        </p>
+              <td>
+                {{ memo.categoryName || "未分類" }}
+              </td>
 
-        <p class="memo-date">日付: {{ formatDate(memo.created_at) }}</p>
+              <td>
+                <div class="memo-tags">
+                  <span
+                    v-for="tag in (memo.tags || [])"
+                    :key="tag.id"
+                    class="tag"
+                    :style="{ backgroundColor: tag.color || '#999' }"
+                  >
+                    {{ tag.name }}
+                  </span>
+                </div>
+              </td>
+
+              <td>
+                <span
+                  class="importance-badge"
+                  :class="'imp-' + memo.important"
+                >
+                  {{ importanceLabel(memo.important) }}
+                </span>
+              </td>
+
+              <td>
+                {{ formatDate(memo.created_at) }}
+              </td>
+            </tr>
+
+            <tr v-if="memos.length === 0">
+              <td colspan="5" class="empty-row">
+                メモがありません
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+
       </div>
     </div>
   </div>
@@ -41,61 +74,223 @@
 <script>
 export default {
   name: "MemoList",
-  props: { memos: Array },
+
+  props: {
+    memos: {
+      type: Array,
+      default: () => []
+    }
+  },
+
   emits: ["open-detail"],
+
   methods: {
     importanceLabel(i) {
       return i === 3 ? "高" : i === 2 ? "中" : "低";
     },
+
     formatDate(dt) {
-      return dt ? dt.toString().substring(0, 10) : "";
-    },
-  },
+      return dt
+        ? String(dt).substring(0, 10)
+        : "";
+    }
+  }
 };
 </script>
 
 <style scoped>
-.memo-container {
+
+.tag-manager-container {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  width: 80%;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 1rem;
+
+  overflow: hidden;
+
+  background: rgba(236, 236, 236, 0.99); /* 半透明白 */
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+
+  width: 90%;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
-/* カードスタイル */
-.memo-card {
-  border: 1px solid #ccc;
-  border-radius: 8px;
+/* =======================
+   テーブル全体
+======================= */
+
+.memo-table-wrapper {
+  width: 95%;
+  margin: 0 auto;
+
+  background: rgba(255,255,255,0.35);
+  backdrop-filter: blur(6px);
+
+  border-radius: 12px;
   padding: 1rem;
-  width: 300px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  cursor: pointer;
-  transition: transform 0.1s;
+
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
-.memo-card:hover {
-  transform: scale(1.02);
+/* 横・縦スクロール */
+
+.memo-table-scroll {
+  max-height: 75vh; /* ここでテーブル全体の高さ調整 */
+
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
-/* 重要度ごとの背景色 */
-.imp-card-1 { background-color: #d0f0ff; }  /* 低:薄い水色 */
-.imp-card-2 { background-color: #fff9c4; }  /* 中:薄い黄色 */
-.imp-card-3 { background-color: #ffd6d6; }  /* 高:薄い赤 */
+/* =======================
+   テーブル
+======================= */
 
-.memo-title { font-size: 1.2rem; margin-bottom: 0.5rem; }
-.memo-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.memo-table {
+  width: 100%;
+  min-width: 1200px;
+  table-layout: fixed; /* 列幅を固定 */
+}
+
+.col-title {
+  width: 330px;
+}
+
+.col-category {
+  width: 90px;
+}
+
+.col-tags {
+  width: 250px;
+}
+
+.col-important {
+  width: 50px;
+}
+
+.col-date {
+  width: 90px;
+}
+
+/* ヘッダー固定 */
+
+.memo-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  background: rgba(40, 40, 40, 0.9);
+  color: white;
+
+  padding: 12px;
+  text-align: center;
+}
+
+.memo-table tbody tr {
+  height: 70px;
+}
+
+.memo-table td {
+  vertical-align: middle;
+}
+
+.memo-table tbody tr:hover {
+  background-color: rgba(255,255,255,0.8);
+}
+
+/* =======================
+   重要度色
+======================= */
+
+.imp-row-1 {
+  background-color: rgba(208,240,255,0.55);
+}
+
+.imp-row-2 {
+  background-color: rgba(255,249,196,0.55);
+}
+
+.imp-row-3 {
+  background-color: rgba(255,214,214,0.55);
+}
+
+/* =======================
+   タイトル
+======================= */
+
+.title-cell {
+  font-weight: 600;
+  min-width: 250px;
+}
+
+/* =======================
+   タグ
+======================= */
+
+.memo-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
 
 .tag {
   color: white;
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
-@media (max-width: 600px) {
-  .memo-card { width: 80%; }
-  .memo-container { width: 100%; gap: 0.5rem; }
+/* =======================
+   重要度
+======================= */
+
+.importance-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: bold;
 }
+
+.imp-1 {
+  background: rgba(0,120,255,0.15);
+}
+
+.imp-2 {
+  background: rgba(255,180,0,0.18);
+}
+
+.imp-3 {
+  background: rgba(255,0,0,0.15);
+}
+
+/* =======================
+   空データ
+======================= */
+
+.empty-row {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+/* =======================
+   スマホ
+======================= */
+
+@media (max-width: 600px) {
+
+  .memo-table-wrapper {
+    width: 95%;
+    padding: 0.5rem;
+  }
+
+  .memo-table {
+    min-width: 800px;
+  }
+
+}
+
 </style>

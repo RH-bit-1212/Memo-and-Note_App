@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: memo-api
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./data:/data
+      - ./fastapi_app/frontend:/app/frontend
+
+    environment:
+      - DB_PATH=/data/memos.db
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+
+    restart: unless-stopped

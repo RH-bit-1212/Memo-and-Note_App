@@ -1,11 +1,10 @@
 <template>
-  <!-- モーダル背景 -->
   <div class="modal-overlay" @click.self="$emit('close')">
-    <!-- モーダル本体 -->
     <div class="modal">
+
       <h2 class="modal-title">フィルター</h2>
 
-      <!-- キーワード検索 -->
+      <!-- キーワード -->
       <div class="filter-row">
         <label>キーワード：</label>
         <input
@@ -15,40 +14,34 @@
         />
       </div>
 
-      <!-- タグフィルター -->
+      <!-- タグ（モーダル呼び出し） -->
       <div class="filter-row">
         <label>タグ：</label>
-        <select v-model="localTagId">
-          <option value="">全て</option>
-          <option v-for="t in tags" :key="t.id" :value="t.id">
-            {{ t.name }}
-          </option>
-        </select>
+        <button class="select-btn" @click="showTagModal = true">
+          {{ localTagIds.length ? `${localTagIds.length}件選択中` : "選択" }}
+        </button>
       </div>
 
-      <!-- カテゴリフィルター -->
+      <!-- カテゴリ（モーダル呼び出し） -->
       <div class="filter-row">
         <label>カテゴリ：</label>
-        <select v-model="localCategoryId">
-          <option value="">全て</option>
-          <option v-for="c in categories" :key="c.id" :value="c.id">
-            {{ c.name }}
-          </option>
-        </select>
+        <button class="select-btn" @click="showCategoryModal = true">
+          {{ selectedCategoryLabel }}
+        </button>
       </div>
 
       <!-- 重要度 -->
       <div class="filter-row">
         <label>重要度：</label>
-        <select v-model="localImportant">
-          <option value="">全て</option>
-          <option value="1">低</option>
-          <option value="2">中</option>
-          <option value="3">高</option>
+        <select v-model.number="localImportant">
+          <option :value="null">全て</option>
+          <option :value="1">低</option>
+          <option :value="2">中</option>
+          <option :value="3">高</option>
         </select>
       </div>
 
-      <!-- 日時ソート -->
+      <!-- ソート -->
       <div class="filter-row">
         <label>日時：</label>
         <select v-model="localSort">
@@ -59,11 +52,56 @@
         </select>
       </div>
 
-      <!-- ボタン -->
       <div class="modal-buttons">
         <button class="btn-clear" @click="clearFilter">クリア</button>
       </div>
     </div>
+
+    <!-- =========================
+         TAG MODAL
+    ========================== -->
+    <div v-if="showTagModal" class="inner-modal" @click.self="showTagModal = false">
+      <div class="inner-box">
+        <h3>タグ選択</h3>
+
+        <div class="scroll-area">
+          <label v-for="t in tags" :key="t.id" class="check-item">
+            <input type="checkbox" :value="t.id" v-model="localTagIds" />
+            {{ t.name }}
+          </label>
+        </div>
+
+        <button @click="showTagModal = false">閉じる</button>
+      </div>
+    </div>
+
+    <!-- =========================
+         CATEGORY MODAL
+    ========================== -->
+    <div v-if="showCategoryModal" class="inner-modal" @click.self="showCategoryModal = false">
+      <div class="inner-box">
+        <h3>カテゴリ選択</h3>
+
+        <div class="scroll-area">
+          <label class="check-item">
+            <input type="radio" :value="null" v-model="localCategoryId" />
+            全て
+          </label>
+
+          <label
+            v-for="c in categories"
+            :key="c.id"
+            class="check-item"
+          >
+            <input type="radio" :value="c.id" v-model="localCategoryId" />
+            {{ c.name }}
+          </label>
+        </div>
+
+        <button @click="showCategoryModal = false">閉じる</button>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -80,27 +118,37 @@ export default {
   data() {
     return {
       localKeyword: this.modelValue.keyword || "",
-      localTagId: this.modelValue.tag_id || "",
-      localCategoryId: this.modelValue.category_id || "",
-      localImportant: this.modelValue.important || "",
+      localTagIds: this.modelValue.tag_ids || [],
+      localCategoryId: this.modelValue.category_id ?? null,
+      localImportant: this.modelValue.important ?? null,
       localSort: this.modelValue.sort || "created_desc",
+
+      showTagModal: false,
+      showCategoryModal: false,
     };
+  },
+
+  computed: {
+    selectedCategoryLabel() {
+      if (!this.localCategoryId) return "全て";
+      const c = this.categories.find(c => c.id === this.localCategoryId);
+      return c ? c.name : "全て";
+    },
   },
 
   watch: {
     localKeyword: "emitFilter",
-    localTagId: "emitFilter",
+    localTagIds: "emitFilter",
     localCategoryId: "emitFilter",
     localImportant: "emitFilter",
     localSort: "emitFilter",
 
-    // 外部から更新された場合もローカルに反映
     modelValue: {
       handler(val) {
         this.localKeyword = val.keyword || "";
-        this.localTagId = val.tag_id || "";
-        this.localCategoryId = val.category_id || "";
-        this.localImportant = val.important || "";
+        this.localTagIds = val.tag_ids || [];
+        this.localCategoryId = val.category_id ?? null;
+        this.localImportant = val.important ?? null;
         this.localSort = val.sort || "created_desc";
       },
       deep: true,
@@ -111,7 +159,7 @@ export default {
     emitFilter() {
       this.$emit("update:modelValue", {
         keyword: this.localKeyword.trim(),
-        tag_id: this.localTagId,
+        tag_ids: this.localTagIds,
         category_id: this.localCategoryId,
         important: this.localImportant,
         sort: this.localSort,
@@ -120,15 +168,16 @@ export default {
 
     clearFilter() {
       this.localKeyword = "";
-      this.localTagId = "";
-      this.localCategoryId = "";
-      this.localImportant = "";
+      this.localTagIds = [];
+      this.localCategoryId = null;
+      this.localImportant = null;
       this.localSort = "created_desc";
       this.emitFilter();
     },
   },
 };
 </script>
+
 
 <style scoped>
 .modal-overlay {
@@ -168,10 +217,10 @@ select {
   border-radius: 4px;
 }
 
+/* ボタンは右寄せ維持（必要ならそのまま） */
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
 }
 
 .btn-clear {
@@ -180,4 +229,44 @@ select {
   padding: 0.4rem 0.8rem;
   border-radius: 4px;
 }
+
+.inner-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.inner-box {
+  background: white;
+  width: 300px;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.scroll-area {
+  max-height: 250px;
+  overflow-y: auto;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.check-item {
+  display: block;
+  margin: 4px 0;
+}
+
+.select-btn {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+
 </style>
