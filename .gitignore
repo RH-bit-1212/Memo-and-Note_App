@@ -194,7 +194,10 @@ cython_debug/
 node_modules/
 
 # Frontend build
-# frontend/dist/ は本番へそのまま渡すためGit管理する
+# my-app/dist/ はローカルビルド生成物なのでGit管理しない
+my-app/dist/
+
+# fastapi_app/frontend/dist/ は本番配信用なのでGit管理する
 
 # IDE
 .vscode/
