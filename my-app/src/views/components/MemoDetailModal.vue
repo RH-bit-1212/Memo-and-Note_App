@@ -2,7 +2,6 @@
   <div
     v-if="localMemo"
     class="modal-overlay"
-    @click.self="$emit('close')"
   >
     <div class="modal-content">
       <h2>メモ詳細</h2>

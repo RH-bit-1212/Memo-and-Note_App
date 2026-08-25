@@ -1,7 +1,6 @@
 <template>
   <div
     class="modal-overlay"
-    @click.self="$emit('close')"
   >
     <div class="modal-content">
       <h2>新規メモ</h2>

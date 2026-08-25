@@ -2,7 +2,6 @@
   <div
     v-if="memo"
     class="modal-overlay"
-    @click.self="$emit('close')"
   >
     <div class="modal-content">
 
